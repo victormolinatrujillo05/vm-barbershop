@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>VM Barbershop - Cliente</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Aseguramos que el modal esté realmente oculto al cargar */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 9999; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.9); 
+        }
+        .modal-content { 
+            background-color: #1a1a1a; 
+            margin: 5% auto; 
+            padding: 30px; 
+            border: 1px solid #d4af37; 
+            width: 90%; 
+            max-width: 450px; 
+            border-radius: 15px; 
+        }
+        /* Estilo de la tarjeta de citas para que no se mezcle */
+        .cita-item {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #d4af37;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <div class="logo-circle">VM</div>
+            <div class="logo-text">BARBER<span>SHOP</span></div>
+            <div class="subtitle">Tu estilo, nuestra pasión</div>
+        </div>
+
+        <h3 id="saludo" style="font-weight: 300; color: #d4af37; margin-bottom: 20px;"></h3>
+        
+        <div style="text-align: left;">
+            <p style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 2px;">Mis Citas Reservadas</p>
+            <div id="info-cita">Cargando citas...</div>
+            <button onclick="abrirModal()" style="margin-top: 20px;">RESERVAR NUEVA CITA</button>
+        </div>
+
+        <button onclick="localStorage.clear(); window.location.href='index.html'" style="background: transparent; border: 1px solid #333; color: #666; font-size: 10px; margin-top: 30px; cursor: pointer;">Cerrar Sesión</button>
+    </div>
+
+    <div id="modalReserva" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #d4af37; text-align: center; font-family: 'Playfair Display';">NUEVA RESERVA</h2>
+            
+            <label>Barbero:</label>
+            <select id="selectBarberos" onchange="ajustarHorarios()">
+                <option value="2">Juan Mata</option>
+                <option value="3">Sergio Zambrano</option>
+            </select>
+            
+            <label>Servicio:</label>
+            <select id="selectServicios" onchange="ajustarHorarios()"></select>
+
+            <label>Fecha:</label>
+            <input type="date" id="fechaCita" onchange="ajustarHorarios()">
+
+            <label>Hora:</label>
+            <select id="horaCita"><option value="">Selecciona fecha</option></select>
+
+            <button onclick="mostrarConfirmacion()">CONFIRMAR CITA</button>
+            <button onclick="cerrarModal()" style="background: #333; color: #fff; margin-top: 10px; cursor: pointer;">VOLVER</button>
+        </div>
+    </div>
+
+    <div id="modalConfirmacion" class="modal" style="z-index: 10000; align-items: center; justify-content: center; display: none;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h3 style="color: #d4af37; margin-top: 0; font-size: 1.2rem; font-family: 'Playfair Display';">¿Confirmar Reserva?</h3>
+            <p style="margin-bottom: 20px; font-size: 0.9rem; color: #ccc;">Revisa que los datos sean correctos:</p>
+            
+            <div style="text-align: left; margin-bottom: 25px; background-color: #2a2a2a; padding: 15px; border-radius: 5px;">
+                <p style="margin: 5px 0;"><strong>Barbero:</strong> <span id="modalResBarbero" style="color: #d4af37;"></span></p>
+                <p style="margin: 5px 0;"><strong>Servicio:</strong> <span id="modalResServicio" style="color: #d4af37;"></span></p>
+                <p style="margin: 5px 0;"><strong>Fecha:</strong> <span id="modalResFecha" style="color: #d4af37;"></span></p>
+                <p style="margin: 5px 0;"><strong>Hora:</strong> <span id="modalResHora" style="color: #d4af37;"></span></p>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; gap: 15px;">
+                <button onclick="cerrarConfirmacion()" style="background-color: #333; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; flex: 1;">RECHAZAR</button>
+                <button onclick="enviarReserva()" style="background-color: #d4af37; color: black; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; flex: 1;">CONFIRMAR</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('usuario'));
+        if (!user) window.location.href = 'index.html';
+        document.getElementById('saludo').innerText = `Hola, ${user.nombre}`;
+
+        function bloquearFechasPasadas() {
+            const hoy = new Date().toISOString().split("T")[0];
+            document.getElementById('fechaCita').setAttribute('min', hoy);
+        }
+
+        async function ajustarHorarios() {
+            const fechaInput = document.getElementById('fechaCita');
+            const fechaSel = fechaInput.value;
+            const barberoId = document.getElementById('selectBarberos').value;
+            const servicioId = document.getElementById('selectServicios').value;
+            const selectHora = document.getElementById('horaCita');
+            
+            if (!fechaSel || !servicioId) return;
+
+            const ahora = new Date();
+            const hoyCero = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+            const fechaCita = new Date(fechaSel + "T00:00:00");
+
+            if (fechaCita < hoyCero) {
+                alert("Fecha pasada.");
+                fechaInput.value = '';
+                return;
+            }
+
+            const resS = await fetch('http://localhost:3000/api/servicios');
+            const servicios = await resS.json();
+            const serv = servicios.find(s => s.id == servicioId);
+            const duracion = serv ? serv.duracion : 30;
+
+            const resO = await fetch(`http://localhost:3000/api/citas/ocupadas?barbero_id=${barberoId}&fecha=${fechaSel}`);
+            const ocupadas = await resO.json();
+
+            const dia = fechaCita.getDay(); 
+            
+            if (dia === 0) { alert("Domingos cerrado"); fechaInput.value = ''; return; }
+
+            selectHora.innerHTML = '';
+            let franjas = (dia === 6) ? [{inicio:600, fin:840}] : [{inicio:540, fin:780}, {inicio:1020, fin:1200}];
+            const minActuales = ahora.getHours() * 60 + ahora.getMinutes();
+            const esHoy = fechaCita.getTime() === hoyCero.getTime();
+
+            franjas.forEach(f => {
+                for (let min = f.inicio; min < f.fin; min += 30) {
+                    if (esHoy && min <= minActuales) continue;
+                    if (min + duracion > f.fin) continue;
+
+                    // Cálculo de la hora de inicio
+                    const h = Math.floor(min / 60);
+                    const m = min % 60;
+                    const horaInicio = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    const horaT = `${horaInicio}:00`; 
+                    
+                    // Cálculo de la hora de fin sumando la duración
+                    const minFin = min + duracion;
+                    const hFin = Math.floor(minFin / 60);
+                    const mFin = minFin % 60;
+                    const horaFin = `${hFin.toString().padStart(2,'0')}:${mFin.toString().padStart(2,'0')}`;
+                    
+                    let ocupado = false;
+                    ocupadas.forEach(c => {
+                        const [hC, mC] = c.hora.split(':').map(Number);
+                        const iC = hC * 60 + mC;
+                        const fC = iC + c.duracion;
+                        if (min >= iC && min < fC) ocupado = true;
+                        if (min + duracion > iC && min < iC) ocupado = true;
+                    });
+
+                    if (!ocupado) selectHora.innerHTML += `<option value="${horaT}">${horaInicio} - ${horaFin}</option>`;
+                }
+            });
+        }
+
+        async function verMiCita() {
+            // Obtenemos las citas del cliente
+            const res = await fetch(`http://localhost:3000/api/citas/proxima/${user.id}`);
+            const citas = await res.json();
+            
+            // Obtenemos el catálogo de servicios para consultar las duraciones
+            const resS = await fetch('http://localhost:3000/api/servicios');
+            const servicios = await resS.json();
+
+            const div = document.getElementById('info-cita');
+            div.innerHTML = ''; // Limpiamos el contenedor
+            let citasActivas = 0; // Contador para ver si nos quedan citas futuras
+            const ahora = new Date(); // La hora exacta en este instante
+            
+            citas.forEach(c => {
+                // Buscamos cuánto dura este servicio
+                const serv = servicios.find(s => s.nombre === c.servicio);
+                const duracion = serv ? serv.duracion : 30;
+
+                // Extraemos la hora y los minutos de inicio
+                const [h, m] = c.hora.split(':').map(Number);
+                const horaInicio = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                
+                // Calculamos la hora de fin sumando la duración
+                const minFin = (h * 60) + m + duracion;
+                const hFin = Math.floor(minFin / 60);
+                const mFin = minFin % 60;
+                const horaFin = `${hFin.toString().padStart(2,'0')}:${mFin.toString().padStart(2,'0')}`;
+
+                // --- FILTRO DE CADUCIDAD (CORREGIDO) ---
+                // Inicializamos la fecha basándonos en el día guardado en la DB
+                const fechaCitaObj = new Date(c.fecha);
+                
+                // Forzamos a que tenga la hora exacta local a la que termina la cita
+                fechaCitaObj.setHours(hFin, mFin, 0, 0);
+
+                // Si este mismo instante (ahora) es mayor que la hora en la que terminaba la cita, la ocultamos
+                if (ahora > fechaCitaObj) {
+                    return; 
+                }
+
+                citasActivas++; // Sumamos una a las citas que sí se van a mostrar
+
+                div.innerHTML += `
+                    <div class="cita-item">
+                        <div>
+                            <strong>${c.servicio}</strong><br>
+                            <span style="color: #d4af37; font-size: 13px;">Barbero: ${c.barbero}</span><br>
+                            <small style="color: #888;">${horaInicio} - ${horaFin} hs | ${new Date(c.fecha).toLocaleDateString()}</small>
+                        </div>
+                        <button onclick="cancelar(${c.id})" style="width:35px; height:35px; padding:0; background:#900; color:white; margin:0; cursor:pointer;">X</button>
+                    </div>`;
+            });
+
+            // Si después de filtrar no hay citas futuras, mostramos el mensaje
+            if (citasActivas === 0) {
+                div.innerHTML = '<p style="color:#555;">No tienes citas programadas.</p>';
+            }
+        }
+
+        async function cancelar(id) { 
+            if(confirm("¿Cancelar cita?")) { 
+                await fetch(`http://localhost:3000/api/citas/${id}`,{method:'DELETE'}); 
+                verMiCita(); 
+            } 
+        }
+
+        async function abrirModal() {
+            document.getElementById('modalReserva').style.display='block';
+            bloquearFechasPasadas();
+            const res = await fetch('http://localhost:3000/api/servicios');
+            const servicios = await res.json();
+            const s = document.getElementById('selectServicios');
+            s.innerHTML = '';
+            servicios.forEach(serv => s.innerHTML += `<option value="${serv.id}">${serv.nombre} - ${serv.precio}€</option>`);
+            ajustarHorarios();
+        }
+
+        function cerrarModal() { 
+            document.getElementById('modalReserva').style.display='none'; 
+        }
+
+        // --- NUEVAS FUNCIONES PARA LA CONFIRMACIÓN ---
+        function mostrarConfirmacion() {
+            const h = document.getElementById('horaCita').value;
+            if(!h) return alert("Por favor, elige una hora válida para continuar.");
+
+            // Extraemos los textos visuales de los selects
+            const selBarbero = document.getElementById('selectBarberos');
+            const selServicio = document.getElementById('selectServicios');
+            const selHora = document.getElementById('horaCita');
+            const inputFecha = document.getElementById('fechaCita').value;
+
+            // Damos formato a la fecha (DD/MM/YYYY)
+            const objFecha = new Date(inputFecha);
+            const fechaFormateada = objFecha.toLocaleDateString('es-ES');
+
+            // Volcamos los datos en el modal de confirmación
+            document.getElementById('modalResBarbero').innerText = selBarbero.options[selBarbero.selectedIndex].text;
+            document.getElementById('modalResServicio').innerText = selServicio.options[selServicio.selectedIndex].text;
+            document.getElementById('modalResFecha').innerText = fechaFormateada;
+            document.getElementById('modalResHora').innerText = selHora.options[selHora.selectedIndex].text;
+
+            // Mostramos el nuevo modal por encima (he usado flex para centrarlo verticalmente)
+            document.getElementById('modalConfirmacion').style.display = 'flex';
+        }
+
+        function cerrarConfirmacion() {
+            document.getElementById('modalConfirmacion').style.display = 'none';
+        }
+
+        async function enviarReserva() {
+            const h = document.getElementById('horaCita').value;
+            
+            await fetch('http://localhost:3000/api/citas/reservar', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    usuario_id: user.id, servicio_id: document.getElementById('selectServicios').value,
+                    barbero_id: document.getElementById('selectBarberos').value, fecha: document.getElementById('fechaCita').value, hora: h
+                })
+            });
+            
+            // Cuando la cita se ha guardado correctamente en la BBDD, ocultamos ambas ventanas
+            cerrarConfirmacion();
+            cerrarModal(); 
+            verMiCita(); // Actualizamos la lista de citas en el panel
+        }
+        
+        // Inicializamos la vista de citas al cargar
+        verMiCita();
+    </script>
+</body>
+</html>

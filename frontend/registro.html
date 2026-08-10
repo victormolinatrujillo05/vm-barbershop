@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - VM Barbershop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <form id="formRegistro">
+            <h2>Crear Cuenta</h2>
+            <p style="text-align: center; margin-top: -15px; color: #888;">Únete a la comunidad VM</p>
+            
+            <input type="text" id="nombre" placeholder="Nombre completo" required>
+            <input type="email" id="email" placeholder="Correo electrónico" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <input type="text" id="telefono" placeholder="Teléfono">
+            
+            <input type="hidden" id="rol" value="cliente">
+
+            <button type="submit">REGISTRARME</button>
+            
+            <p style="text-align: center; margin-top: 15px;">
+                <a href="index.html" style="color: #d4af37; text-decoration: none;">¿Ya tienes cuenta? Logueate</a>
+            </p>
+        </form>
+    </div>
+    <script src="registro.js"></script>
+</body>
+</html>

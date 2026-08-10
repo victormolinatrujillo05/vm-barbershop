@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Agenda Pro - VM Barbershop</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 700px;">
+        <div class="logo-container">
+            <div class="logo-circle">VM</div>
+            <div class="logo-text">AGENDA<span>PRO</span></div>
+            <p id="nombre-barbero" style="color: #d4af37; text-transform: uppercase; letter-spacing: 2px; font-size: 11px; margin-top: 5px;"></p>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #d4af37; color: #d4af37; font-size: 12px;">
+                        <th style="padding: 10px;">FECHA</th>
+                        <th style="padding: 10px;">HORARIO</th>
+                        <th style="padding: 10px;">CLIENTE</th>
+                        <th style="padding: 10px;">SERVICIO</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpo-agenda" style="text-align: center;">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="mensaje-vacio" style="display:none; padding: 40px; color: #666; font-style: italic;">
+            No tienes citas programadas.
+        </div>
+
+        <button onclick="localStorage.clear(); window.location.href='index.html'" style="background: #222; color: #555; border: 1px solid #333; margin-top: 40px; height: 45px; cursor: pointer;">CERRAR SESIÓN</button>
+    </div>
+
+    <script>
+        const barbero = JSON.parse(localStorage.getItem('usuario'));
+        // Verificamos que es un barbero real
+        if (!barbero || (barbero.rol !== 'barbero' && barbero.rol !== 'admin')) {
+            window.location.href = 'index.html';
+        }
+        
+        document.getElementById('nombre-barbero').innerText = `Barbero: ${barbero.nombre}`;
+
+        async function cargarAgenda() {
+            try {
+                // Llamada a la API con el ID del barbero logueado
+                const res = await fetch(`http://localhost:3000/api/citas/barbero/${barbero.id}`);
+                const citas = await res.json();
+                const cuerpo = document.getElementById('cuerpo-agenda');
+                const mensajeVacio = document.getElementById('mensaje-vacio');
+                
+                cuerpo.innerHTML = '';
+                let citasActivas = 0; // Contador para las citas futuras
+
+                if (!citas || citas.length === 0) {
+                    mensajeVacio.style.display = 'block';
+                    return;
+                }
+
+                // LÓGICA DE ORDENACIÓN: Ordenamos por fecha y, si es el mismo día, por hora
+                citas.sort((a, b) => {
+                    const fechaA = new Date(a.fecha);
+                    const fechaB = new Date(b.fecha);
+                    
+                    // Comparamos los días exactos
+                    if (fechaA.toDateString() === fechaB.toDateString()) {
+                        // Si es el mismo día, la hora decide (localeCompare va genial para strings de hora como "09:00:00")
+                        return a.hora.localeCompare(b.hora);
+                    }
+                    // Si son días distintos, ordenamos por día
+                    return fechaA - fechaB;
+                });
+
+                const ahora = new Date(); // La hora exacta en este instante
+
+                citas.forEach(c => {
+                    // Dar formato a la fecha (ej: 09/04/2026)
+                    const fechaObj = new Date(c.fecha);
+                    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                    // Cálculo de fin de servicio para el intervalo
+                    const [h, m] = c.hora.split(':').map(Number);
+                    const inicioMinutos = h * 60 + m;
+                    const finMinutos = inicioMinutos + c.duracion;
+                    
+                    const horaF = Math.floor(finMinutos/60);
+                    const minF = finMinutos%60;
+                    
+                    const horaF_str = horaF.toString().padStart(2,'0');
+                    const minF_str = minF.toString().padStart(2,'0');
+                    const intervalo = `${c.hora.substring(0,5)} - ${horaF_str}:${minF_str}`;
+
+                    // --- NUEVO FILTRO DE CADUCIDAD PARA EL BARBERO ---
+                    // Forzamos a que tenga la hora exacta local a la que termina la cita
+                    fechaObj.setHours(horaF, minF, 0, 0);
+
+                    // Si este mismo instante (ahora) es mayor que la hora en la que terminaba la cita, la ocultamos
+                    if (ahora > fechaObj) {
+                        return; // Saltamos a la siguiente iteración del forEach
+                    }
+
+                    citasActivas++; // Si llegamos aquí, la cita es futura y se mostrará
+
+                    cuerpo.innerHTML += `
+                        <tr style="border-bottom: 1px solid #333;">
+                            <td style="padding: 15px 5px; color: #fff; font-size: 14px;">${fechaFormateada}</td>
+                            <td style="padding: 15px 5px; color: #d4af37; font-weight: bold; font-size: 14px;">${intervalo}</td>
+                            <td style="padding: 15px 5px; text-transform: capitalize; font-size: 14px;">${c.cliente || "Cliente Ocasional"}</td>
+                            <td style="padding: 15px 5px; font-size: 12px; color: #aaa;">${c.servicio} <br> <small>(${c.duracion} min)</small></td>
+                        </tr>`;
+                });
+
+                // Control del mensaje de "No tienes citas"
+                if (citasActivas === 0) {
+                    mensajeVacio.style.display = 'block';
+                } else {
+                    mensajeVacio.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error("Error al cargar la agenda:", error);
+                document.getElementById('mensaje-vacio').innerText = "Error de conexión con el servidor.";
+                document.getElementById('mensaje-vacio').style.display = 'block';
+            }
+        }
+
+        // Carga inicial
+        cargarAgenda();
+        // Recarga cada 30 segundos por si entra una cita nueva mientras está mirando
+        setInterval(cargarAgenda, 30000);
+    </script>
+</body>
+</html>

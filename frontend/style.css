@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Poppins:wght@300;400;600&display=swap');
+
+:root {
+    --dorado: #d4af37;
+    --dorado-oscuro: #b8952e;
+    --negro-fondo: #121212;
+    --negro-tarjeta: rgba(26, 26, 26, 0.95);
+    --blanco: #ffffff;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
+                url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1920&q=80');
+    background-size: cover; background-attachment: fixed; background-position: center;
+    color: var(--blanco); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+}
+
+.container {
+    background: var(--negro-tarjeta); padding: 40px; border-radius: 20px;
+    border: 1px solid rgba(212, 175, 55, 0.3); width: 100%; max-width: 500px; text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* --- LOGOTIPO CSS --- */
+.logo-container { margin-bottom: 25px; }
+.logo-circle {
+    width: 60px; height: 60px; border: 2px solid var(--dorado); border-radius: 50%;
+    display: flex; justify-content: center; align-items: center; margin: 0 auto 10px;
+    font-family: 'Playfair Display'; font-size: 28px; color: var(--dorado);
+}
+.logo-text { font-family: 'Playfair Display'; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+.logo-text span { color: var(--dorado); }
+
+/* --- FORMULARIOS (Legibilidad garantizada) --- */
+input, select {
+    width: 100%; padding: 12px; margin: 10px 0; background: #222 !important; 
+    border: 1px solid #444; border-radius: 8px; color: white !important; font-size: 15px;
+    box-sizing: border-box;
+}
+
+select option { background: #222; color: white; }
+
+button {
+    background: linear-gradient(135deg, var(--dorado), var(--dorado-oscuro));
+    color: black; padding: 14px; border: none; border-radius: 8px;
+    font-weight: bold; width: 100%; cursor: pointer; margin-top: 15px; text-transform: uppercase;
+}
+
+button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); }
+
+.cita-item {
+    background: rgba(255,255,255,0.05); margin: 10px 0; padding: 15px;
+    border-radius: 10px; border-left: 4px solid var(--dorado);
+    display: flex; justify-content: space-between; align-items: center; text-align: left;
+}
