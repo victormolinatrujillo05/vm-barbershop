@@ -1,2 +1,13 @@
 node_modules/
 .env
+node_modules/
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+/Imágenes memoria/
+diapo2.png
+portada_vm_barbershop.pdf
+portadamemoriatfg.png
